@@ -6,6 +6,7 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework import generics, mixins
 from scrapyd_api import ScrapydAPI
 from main.models import Quote
 
@@ -19,16 +20,15 @@ def is_valid_url(url):
         validate(url)  # check if url format is valid
     except ValidationError:
         return False
-
     return True
 
 
-@csrf_exempt
-@require_http_methods(['POST', 'GET'])  # only get and post
-def crawl(request):
-    # Post requests are for new crawling tasks
-    if request.method == 'POST':
-
+class Crawler(mixins.RetrieveModelMixin,
+                 generics.GenericAPIView):
+    """
+    GET and POST request to craw !
+    """
+    def create(self, request, *args, **kwargs):
         url = request.POST.get('url', None)  # take url comes from client. (From an input may be?)
 
         if not url:
@@ -58,8 +58,10 @@ def crawl(request):
 
         return JsonResponse({'task_id': task, 'unique_id': unique_id, 'status': 'started'})
 
-    # Get requests are for getting result of a specific crawling task
-    elif request.method == 'GET':
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+    def retrieve(self, request, *args, **kwargs):
         # We were passed these from past request above. Remember ?
         # They were trying to survive in client side.
         # Now they are here again, thankfully. <3
@@ -79,9 +81,12 @@ def crawl(request):
         if status == 'finished':
             try:
                 # this is the unique_id that we created even before crawling started.
-                item = ScrapyItem.objects.get(unique_id=unique_id)
+                item = Quote.objects.get(unique_id=unique_id)
                 return JsonResponse({'data': item.to_dict['data']})
             except Exception as e:
                 return JsonResponse({'error': str(e)})
         else:
             return JsonResponse({'status': status})
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
