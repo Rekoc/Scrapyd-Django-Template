@@ -1,6 +1,8 @@
-Django==2.0.12
+Django==3.1.2
+djangorestframework==3.11.0
+# Scrapy
 python-scrapyd-api==2.1.2
-requests==2.18.4
-Scrapy==1.5.1
+requests==2.24.0
+Scrapy==2.4.1
 scrapy-djangoitem==1.1.1
-scrapyd==1.2.0
+scrapyd==1.2.1
